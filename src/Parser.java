@@ -383,6 +383,11 @@ public class Parser {
     // 使用 Lexer 生成的 token 序列, 输出分析栈内容
     public void parse(List<Lexer.Token> tokens) {
         System.out.println("===== LR(1) 分析过程 =====");
+        System.out.printf("%-100s%-100s%-100s%-30s\n",
+                "栈",
+                "符号",
+                "输入",
+                "动作");
         Stack<Integer> stateStack = new Stack<>();
         Stack<String> symbolStack = new Stack<>();
         stateStack.push(0);
@@ -442,7 +447,70 @@ public class Parser {
     }
 
     private void printStacks(Stack<Integer> ss, Stack<String> syms, List<Lexer.Token> tokens, int idx, Action act) {
-        System.out.printf("%-30s%-30s%-10s\n", ss + "    " + syms, tokens.subList(idx, tokens.size()), act);
+        // 处理状态栈为字符串
+        StringBuilder stateSb = new StringBuilder();
+        for (Integer s : ss) {
+            if (!stateSb.isEmpty()) {
+                stateSb.append(" ");
+            }
+            stateSb.append(s);
+        }
+        String stateStackStr = stateSb.toString();
+
+        // 处理符号栈为字符串
+        StringBuilder symSb = new StringBuilder();
+        for (String sym : syms) {
+            if (!symSb.isEmpty()) {
+                symSb.append(" ");
+            }
+            symSb.append(sym);
+        }
+        String symbolStackStr = symSb.toString();
+
+        // 处理输入部分为字符串
+        StringBuilder inputSb = new StringBuilder();
+        List<Lexer.Token> remainingTokens = tokens.subList(idx, tokens.size());
+        for (Lexer.Token token : remainingTokens) {
+            if (!inputSb.isEmpty()) {
+                inputSb.append(" ");
+            }
+            inputSb.append(token.type == Lexer.TokenType.EOF ? "$" : token.value);
+        }
+        String inputStr = inputSb.toString();
+
+        // 处理动作描述
+        String actionStr;
+        if (act.type == Action.Type.REDUCE) {
+            // 动态构建产生式列表以匹配产生式索引
+            List<Map.Entry<String, List<String>>> productionsList = new ArrayList<>();
+            for (Map.Entry<String, List<List<String>>> entry : productions.entrySet()) {
+                String lhs = entry.getKey();
+                for (List<String> rhs : entry.getValue()) {
+                    productionsList.add(new AbstractMap.SimpleEntry<>(lhs, rhs));
+                }
+            }
+            int productionIndex = act.value;
+            if (productionIndex >= 0 && productionIndex < productionsList.size()) {
+                Map.Entry<String, List<String>> production = productionsList.get(productionIndex);
+                String rhs = String.join(" ", production.getValue());
+                actionStr = String.format("根据 %s → %s 规约", production.getKey(), rhs);
+            } else {
+                actionStr = act.toString(); // 索引无效时回退
+            }
+        } else if (act.type == Action.Type.SHIFT){
+            actionStr = "移入状态" + act.value;
+        } else if (act.type == Action.Type.ACCEPT){
+            actionStr = "接受";
+        } else{
+            actionStr = act.toString();
+        }
+
+        // 格式化输出四列
+        System.out.printf("%-100s%-100s%-100s%-30s\n",
+                stateStackStr,
+                symbolStackStr,
+                inputStr,
+                actionStr);
     }
 
     private Map.Entry<String, List<List<String>>> getProductionByIndex(int idx) {
