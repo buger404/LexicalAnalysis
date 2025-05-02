@@ -136,7 +136,7 @@ public class Parser {
     }
 
     private void computeFirstSets() {
-        // 初始化
+        // 初始化 FIRST
         for (String X : nonTerminals) {
             first.put(X, new HashSet<>());
         }
@@ -147,20 +147,27 @@ public class Parser {
         do {
             changed = false;
             for (String A : nonTerminals) {
+                Set<String> fA = first.get(A);
+                int before = fA.size();
                 for (List<String> rhs : productions.get(A)) {
-                    Set<String> fA = first.get(A);
-                    int before = fA.size();
                     if (rhs.isEmpty()) {
                         fA.add("");
                     } else {
+                        boolean nullable = true;
                         for (String sym : rhs) {
                             Set<String> fSym = first.get(sym);
                             fA.addAll(fSym);
-                            if (!fSym.contains("")) break;
+                            if (!fSym.contains("")) {
+                                nullable = false;
+                                break;
+                            }
+                        }
+                        if (nullable) {
+                            fA.add("");
                         }
                     }
-                    if (fA.size() > before) changed = true;
                 }
+                if (fA.size() > before) changed = true;
             }
         } while (changed);
     }
@@ -178,7 +185,6 @@ public class Parser {
                         if (nonTerminals.contains(B)) {
                             Set<String> f = follow.get(B);
                             int before = f.size();
-                            // First of beta
                             Set<String> firstBeta = new HashSet<>();
                             boolean eps = true;
                             for (int j = i+1; j < rhs.size(); j++) {
@@ -206,7 +212,6 @@ public class Parser {
                 String B = it.nextSymbol();
                 if (B != null && nonTerminals.contains(B)) {
                     List<String> beta_a = new ArrayList<>();
-                    // beta + lookahead
                     beta_a.addAll(it.rhs.subList(it.dot+1, it.rhs.size()));
                     beta_a.add(it.lookahead);
                     Set<String> firstBetaA = computeFirstSequence(beta_a);
@@ -222,15 +227,33 @@ public class Parser {
         return C;
     }
 
+    /**
+     * 计算一串符号序列的 FIRST 集合（不包括中间的 ε）
+     */
     private Set<String> computeFirstSequence(List<String> seq) {
         Set<String> res = new HashSet<>();
-        boolean eps = true;
+        boolean allNullable = true;
         for (String X : seq) {
             Set<String> fX = first.get(X);
-            res.addAll(fX);
-            if (!fX.contains("")) { eps = false; break; }
+            if (fX == null) {
+                throw new RuntimeException("No FIRST set for symbol: " + X);
+            }
+            // 加入非 ε 的符号
+            for (String s : fX) {
+                if (!s.isEmpty()) {
+                    res.add(s);
+                }
+            }
+            if (fX.contains("")) {
+                // X 可推导 ε，继续处理下一个符号
+            } else {
+                allNullable = false;
+                break;
+            }
         }
-        if (eps) res.add("");
+        if (allNullable) {
+            res.add("");
+        }
         return res;
     }
 
@@ -363,7 +386,6 @@ public class Parser {
                     idx++;
                     break;
                 case REDUCE:
-                    // 找到对应产生式
                     Map.Entry<String, List<List<String>>> prod = getProductionByIndex(act.value);
                     List<String> rhs = prod.getValue().get(getRhsIndex(act.value));
                     for (int i = 0; i < rhs.size(); i++) {
@@ -395,6 +417,7 @@ public class Parser {
         }
         throw new RuntimeException("Invalid production index");
     }
+
     private int getRhsIndex(int idx) {
         int count = 0;
         for (List<List<String>> lst : productions.values()) {
