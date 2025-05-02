@@ -345,19 +345,35 @@ public class Parser {
         Collections.sort(terms);
         List<String> nonterms = new ArrayList<>(nonTerminals);
         Collections.sort(nonterms);
-        System.out.printf("State" + "%10s", "");
-        for (String t : terms) System.out.printf("%8s", t);
-        for (String A : nonterms) System.out.printf("%8s", A);
+
+        // 计算列宽（根据内容自动适配）
+        int stateColumnWidth = 7; // "State"标题宽度
+        int cellWidth = 10;       // 统一单元格宽度
+
+        // 打印表头
+        System.out.printf("%-" + stateColumnWidth + "s", "State");
+        for (String t : terms) {
+            System.out.printf("%-" + cellWidth + "s", t);
+        }
+        for (String A : nonterms) {
+            System.out.printf("%-" + cellWidth + "s", A);
+        }
         System.out.println();
+
+        // 打印分隔线
+        System.out.print(String.join("", Collections.nCopies(stateColumnWidth + (terms.size()+nonterms.size())*cellWidth, "-")));
+        System.out.println();
+
+        // 打印表格内容
         for (int i = 0; i < states.size(); i++) {
-            System.out.printf("%-5d", i);
+            System.out.printf("%-" + stateColumnWidth + "d", i); // 状态列左对齐
             for (String t : terms) {
                 Action act = actionTable.get(i).get(t);
-                System.out.printf("%8s", act == null ? "" : act);
+                System.out.printf("%-" + cellWidth + "s", act == null ? "" : act.toString().replace("reduce", "r").replace("shift", "s"));
             }
             for (String A : nonterms) {
                 Integer g = gotoTable.get(i).get(A);
-                System.out.printf("%8s", g == null ? "" : g);
+                System.out.printf("%-" + cellWidth + "s", g == null ? "" : g);
             }
             System.out.println();
         }
