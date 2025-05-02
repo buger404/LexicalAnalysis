@@ -80,8 +80,7 @@ public class Parser {
         addProduction("decl", Arrays.asList("type", "id", ";"));
 
         addProduction("type", Arrays.asList("type", "[", "num", "]"));
-        addProduction("type", Arrays.asList("int"));    // 直接终结符
-        addProduction("type", Arrays.asList("float"));  // 直接终结符
+        addProduction("type", Arrays.asList("basic"));
 
         addProduction("stmts", Arrays.asList("stmts", "stmt"));
         addProduction("stmts", Arrays.asList());
@@ -132,8 +131,7 @@ public class Parser {
                 }
             }
         }
-        terminals.add("int");
-        terminals.add("float");
+
         terminals.add("$");  // EOF
     }
 
@@ -390,16 +388,7 @@ public class Parser {
         int idx = 0;
         while (true) {
             int s = stateStack.peek();
-            Lexer.Token token = tokens.get(idx);
-            String a;
-            // 统一映射关键终结符
-            if (token.type == Lexer.TokenType.IDENTIFIER) {
-                a = "id";
-            } else if (token.type == Lexer.TokenType.INTEGER || token.type == Lexer.TokenType.REAL) {
-                a = "num"; // 数值映射到 "num"
-            } else {
-                a = token.value.isEmpty() ? "$" : token.value;
-            }
+            String a = getSymbol(tokens, idx);
             Action act = actionTable.get(s).get(a);
             // 打印栈和输入
             printStacks(stateStack, symbolStack, tokens, idx, act);
@@ -429,6 +418,24 @@ public class Parser {
                     return;
             }
         }
+    }
+
+    private static String getSymbol(List<Lexer.Token> tokens, int idx) {
+        Lexer.Token token = tokens.get(idx);
+        String a;
+        // 统一映射关键终结符
+        if (token.type == Lexer.TokenType.IDENTIFIER) {
+            a = "id";
+        } else if (token.type == Lexer.TokenType.INTEGER) {
+            a = "num";
+        } else if (token.type == Lexer.TokenType.REAL) {
+            a = "real";
+        } else if (token.type == Lexer.TokenType.KEYWORD_BOOL || token.type == Lexer.TokenType.KEYWORD_INT || token.type == Lexer.TokenType.KEYWORD_FLOAT) {
+            a = "basic";
+        } else {
+            a = token.value.isEmpty() ? "$" : token.value;
+        }
+        return a;
     }
 
     private void printStacks(Stack<Integer> ss, Stack<String> syms, List<Lexer.Token> tokens, int idx, Action act) {

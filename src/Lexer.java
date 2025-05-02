@@ -14,8 +14,8 @@ public class Lexer {
     // 简化后的Token类型
     public enum TokenType {
         // 合并关键字和标识符处理
-        KEYWORD_IF, KEYWORD_WHILE, KEYWORD_DO, KEYWORD_BREAK,
-        KEYWORD_INT, KEYWORD_FLOAT, KEYWORD_TRUE, KEYWORD_FALSE,
+        KEYWORD_IF, KEYWORD_ELSE, KEYWORD_WHILE, KEYWORD_DO, KEYWORD_BREAK,
+        KEYWORD_INT, KEYWORD_FLOAT, KEYWORD_BOOL, KEYWORD_TRUE, KEYWORD_FALSE,
         IDENTIFIER,
         
         // 合并所有运算符
@@ -32,9 +32,9 @@ public class Lexer {
     }
 
     private static final Map<String, TokenType> KEYWORDS = Map.of(
-        "if", TokenType.KEYWORD_IF, "while", TokenType.KEYWORD_WHILE,
+        "if", TokenType.KEYWORD_IF, "else", TokenType.KEYWORD_ELSE,"while", TokenType.KEYWORD_WHILE,
         "do", TokenType.KEYWORD_DO, "break", TokenType.KEYWORD_BREAK,
-        "int", TokenType.KEYWORD_INT, "float", TokenType.KEYWORD_FLOAT,
+        "int", TokenType.KEYWORD_INT, "float", TokenType.KEYWORD_FLOAT, "bool", TokenType.KEYWORD_BOOL,
         "true", TokenType.KEYWORD_TRUE, "false", TokenType.KEYWORD_FALSE
     );
 
