@@ -1,5 +1,8 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Parser {
     // 文法表示
@@ -463,6 +466,52 @@ public class Parser {
         throw new RuntimeException("Invalid production index");
     }
 
+    public void writeParseTableToCsv(String filePath) throws IOException {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filePath))) {
+            List<String> terms = new ArrayList<>(terminals);
+            terms.remove("");
+            Collections.sort(terms);
+            List<String> nonterms = new ArrayList<>(nonTerminals);
+            Collections.sort(nonterms);
+
+            // 构建CSV表头
+            List<String> headers = new ArrayList<>();
+            headers.add("State");
+            headers.addAll(terms.stream().map(t -> t.isEmpty() ? "ε" : t).toList());
+            headers.addAll(nonterms);
+            writer.write(String.join(",", headers));
+            writer.newLine();
+
+            // 构建CSV内容
+            for (int i = 0; i < states.size(); i++) {
+                List<String> row = new ArrayList<>();
+                row.add(Integer.toString(i));  // 添加状态号
+
+                // 处理ACTION部分
+                for (String t : terms) {
+                    Action act = actionTable.get(i).get(t);
+                    String value = "";
+                    if (act != null) {
+                        value = act.toString()
+                                .replace("reduce", "r")
+                                .replace("shift", "s")
+                                .replace("accept", "acc");
+                    }
+                    row.add(value);
+                }
+
+                // 处理GOTO部分
+                for (String A : nonterms) {
+                    Integer g = gotoTable.get(i).get(A);
+                    row.add(g != null ? g.toString() : "");
+                }
+
+                writer.write(String.join(",", row));
+                writer.newLine();
+            }
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         try (InputStream input = new FileInputStream("input.txt")) {
             Lexer lexer = new Lexer(input);
@@ -472,6 +521,7 @@ public class Parser {
             Parser parser = new Parser();
             parser.printParseTable();
             parser.parse(tokens);
+            parser.writeParseTableToCsv("output.csv");
         }
     }
 }
