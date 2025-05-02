@@ -76,9 +76,13 @@ public class Parser {
         addProduction("block", Arrays.asList("{", "decls", "stmts", "}"));
         addProduction("decls", Arrays.asList("decls", "decl"));
         addProduction("decls", Arrays.asList());
+
         addProduction("decl", Arrays.asList("type", "id", ";"));
+
         addProduction("type", Arrays.asList("type", "[", "num", "]"));
-        addProduction("type", Arrays.asList("basic"));
+        addProduction("type", Arrays.asList("int"));    // 直接终结符
+        addProduction("type", Arrays.asList("float"));  // 直接终结符
+
         addProduction("stmts", Arrays.asList("stmts", "stmt"));
         addProduction("stmts", Arrays.asList());
         addProduction("stmt", Arrays.asList("loc", "=", "bool", ";"));
@@ -128,6 +132,8 @@ public class Parser {
                 }
             }
         }
+        terminals.add("int");
+        terminals.add("float");
         terminals.add("$");  // EOF
     }
 
@@ -157,14 +163,9 @@ public class Parser {
                         for (String sym : rhs) {
                             Set<String> fSym = first.get(sym);
                             fA.addAll(fSym);
-                            if (!fSym.contains("")) {
-                                nullable = false;
-                                break;
-                            }
+                            if (!fSym.contains("")) { nullable = false; break; }
                         }
-                        if (nullable) {
-                            fA.add("");
-                        }
+                        if (nullable) fA.add("");
                     }
                 }
                 if (fA.size() > before) changed = true;
@@ -306,8 +307,10 @@ public class Parser {
                 if (it.dot < rhs.size()) {
                     String a = it.nextSymbol();
                     if (terminals.contains(a)) {
-                        int s = gotoTable.get(i).get(a);
-                        actionTable.get(i).put(a, new Action(Action.Type.SHIFT, s));
+                        Integer s = gotoTable.get(i).get(a); // 需要检查是否为空
+                        if (s != null) {
+                            actionTable.get(i).put(a, new Action(Action.Type.SHIFT, s));
+                        }
                     }
                 } else {
                     if (A.equals(START_SYMBOL)) {
@@ -371,7 +374,16 @@ public class Parser {
         int idx = 0;
         while (true) {
             int s = stateStack.peek();
-            String a = tokens.get(idx).value.isEmpty() ? "$" : tokens.get(idx).value;
+            Lexer.Token token = tokens.get(idx);
+            String a;
+            // 统一映射关键终结符
+            if (token.type == Lexer.TokenType.IDENTIFIER) {
+                a = "id";
+            } else if (token.type == Lexer.TokenType.INTEGER || token.type == Lexer.TokenType.REAL) {
+                a = "num"; // 数值映射到 "num"
+            } else {
+                a = token.value.isEmpty() ? "$" : token.value;
+            }
             Action act = actionTable.get(s).get(a);
             // 打印栈和输入
             printStacks(stateStack, symbolStack, tokens, idx, act);
